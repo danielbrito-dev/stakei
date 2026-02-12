@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 
-// For production, swap this for Supabase or Vercel KV
-const DATA_FILE = path.join(process.cwd(), "data", "waitlist.json");
+// /tmp is writable on Vercel; locally uses data/ folder
+const DATA_FILE = process.env.VERCEL
+  ? "/tmp/waitlist.json"
+  : path.join(process.cwd(), "data", "waitlist.json");
 
 async function readEmails(): Promise<string[]> {
   try {
