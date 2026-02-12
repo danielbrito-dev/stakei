@@ -1,25 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
-
-// /tmp is writable on Vercel; locally uses data/ folder
-const DATA_FILE = process.env.VERCEL
-  ? "/tmp/waitlist.json"
-  : path.join(process.cwd(), "data", "waitlist.json");
-
-async function readEmails(): Promise<string[]> {
-  try {
-    const data = await fs.readFile(DATA_FILE, "utf-8");
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
-
-async function writeEmails(emails: string[]): Promise<void> {
-  await fs.mkdir(path.dirname(DATA_FILE), { recursive: true });
-  await fs.writeFile(DATA_FILE, JSON.stringify(emails, null, 2));
-}
+import { supabase } from "@/lib/supabase";
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,21 +9,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email inválido" }, { status: 400 });
     }
 
-    const emails = await readEmails();
+    const normalizedEmail = email.toLowerCase();
 
-    if (emails.includes(email.toLowerCase())) {
+    // Check if already registered
+    const { data: existing } = await supabase
+      .from("waitlist")
+      .select("id")
+      .eq("email", normalizedEmail)
+      .single();
+
+    if (existing) {
+      const { count } = await supabase
+        .from("waitlist")
+        .select("*", { count: "exact", head: true });
+
       return NextResponse.json({
         message: "Você já está na lista!",
-        count: emails.length,
+        count: count ?? 0,
       });
     }
 
-    emails.push(email.toLowerCase());
-    await writeEmails(emails);
+    // Insert new email
+    const { error } = await supabase
+      .from("waitlist")
+      .insert({ email: normalizedEmail });
+
+    if (error) throw error;
+
+    const { count } = await supabase
+      .from("waitlist")
+      .select("*", { count: "exact", head: true });
 
     return NextResponse.json({
       message: "Cadastrado com sucesso!",
-      count: emails.length,
+      count: count ?? 0,
     });
   } catch {
     return NextResponse.json(
@@ -54,6 +53,13 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  const emails = await readEmails();
-  return NextResponse.json({ count: emails.length });
+  try {
+    const { count } = await supabase
+      .from("waitlist")
+      .select("*", { count: "exact", head: true });
+
+    return NextResponse.json({ count: count ?? 0 });
+  } catch {
+    return NextResponse.json({ count: 0 });
+  }
 }
