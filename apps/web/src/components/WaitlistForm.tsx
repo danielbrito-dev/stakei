@@ -1,20 +1,22 @@
 "use client";
 
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
+
+function getInitialStatus(): "idle" | "success" {
+  if (typeof window !== "undefined" && localStorage.getItem("stakei-waitlist")) {
+    return "success";
+  }
+  return "idle";
+}
 
 export function WaitlistForm() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
-  >("idle");
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && localStorage.getItem("stakei-waitlist")) {
-      setStatus("success");
-      setMessage("Você já está na lista!");
-    }
-  }, []);
+  >(getInitialStatus);
+  const [message, setMessage] = useState(() =>
+    getInitialStatus() === "success" ? "Você já está na lista!" : "",
+  );
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();

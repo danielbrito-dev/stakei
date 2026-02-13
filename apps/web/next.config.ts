@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: ["@stakei/db", "@stakei/shared", "@stakei/ui"],
 };
 
 export default nextConfig;

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,6 +11,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email inválido" }, { status: 400 });
     }
 
+    const supabase = getSupabase();
     const normalizedEmail = email.toLowerCase();
 
     // Check if already registered
@@ -54,6 +57,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   try {
+    const supabase = getSupabase();
     const { count } = await supabase
       .from("waitlist")
       .select("*", { count: "exact", head: true });
